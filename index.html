@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #a6447f 0%, #f79494 100%);
+            min-height: 100vh;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .button-animation {
+            transition: all 0.3s ease;
+        }
+        .button-animation:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .language-tag {
+            transition: all 0.3s ease;
+        }
+        .language-tag:hover {
+            background: #a6447f;
+            color: white;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="glass-effect rounded-xl p-6 md:p-8 mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white mb-6">AI Code Generator</h1>
+            <div class="grid gap-6">
+                <!-- Language Selection -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button class="language-tag px-4 py-2 rounded-full bg-white text-a6447f font-medium" data-lang="javascript">JavaScript</button>
+                    <button class="language-tag px-4 py-2 rounded-full bg-white text-a6447f font-medium" data-lang="python">Python</button>
+                    <button class="language-tag px-4 py-2 rounded-full bg-white text-a6447f font-medium" data-lang="java">Java</button>
+                    <button class="language-tag px-4 py-2 rounded-full bg-white text-a6447f font-medium" data-lang="cpp">C++</button>
+                </div>
+
+                <!-- Input Section -->
+                <div>
+                    <textarea id="promptInput" class="w-full h-40 p-4 rounded-lg bg-white bg-opacity-90 resize-none focus:outline-none focus:ring-2 focus:ring-a6447f" placeholder="Describe the code you want to generate..."></textarea>
+                </div>
+
+                <!-- Selected Languages Display -->
+                <div id="selectedLanguages" class="flex flex-wrap gap-2">
+                    <!-- Selected languages will appear here -->
+                </div>
+
+                <button id="generateBtn" class="button-animation bg-a6447f text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+                    <i class="bi bi-code-slash"></i>
+                    Generate Code
+                </button>
+
+                <!-- Output Section -->
+                <div id="outputContainer" class="hidden">
+                    <div class="bg-white bg-opacity-90 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex gap-2" id="outputTabs">
+                                <!-- Language tabs will be generated here -->
+                            </div>
+                            <button id="copyBtn" class="button-animation bg-f79494 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+                                <i class="bi bi-clipboard"></i>
+                                Copy Code
+                            </button>
+                        </div>
+                        <pre id="codeOutput" class="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const selectedLangs = new Set();
+        const languageTags = document.querySelectorAll('.language-tag');
+        const selectedLanguagesDiv = document.getElementById('selectedLanguages');
+        const generateBtn = document.getElementById('generateBtn');
+        const promptInput = document.getElementById('promptInput');
+        const outputContainer = document.getElementById('outputContainer');
+        const codeOutput = document.getElementById('codeOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const outputTabs = document.getElementById('outputTabs');
+
+        let generatedCode = {};
+        let currentLanguage = '';
+
+        languageTags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                const lang = tag.dataset.lang;
+                if (selectedLangs.has(lang)) {
+                    selectedLangs.delete(lang);
+                    tag.classList.remove('bg-a6447f', 'text-white');
+                    tag.classList.add('bg-white', 'text-a6447f');
+                } else {
+                    selectedLangs.add(lang);
+                    tag.classList.remove('bg-white', 'text-a6447f');
+                    tag.classList.add('bg-a6447f', 'text-white');
+                }
+                updateSelectedLanguages();
+            });
+        });
+
+        function updateSelectedLanguages() {
+            selectedLanguagesDiv.innerHTML = Array.from(selectedLangs).map(lang => 
+                `<span class="px-3 py-1 rounded-full bg-f79494 text-white text-sm">${lang}</span>`
+            ).join('');
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            if (promptInput.value.trim() === '') {
+                alert('Please enter a prompt');
+                return;
+            }
+            if (selectedLangs.size === 0) {
+                alert('Please select at least one programming language');
+                return;
+            }
+
+            try {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="bi bi-arrow-repeat loading"></i> Generating...';
+                
+                const messages = [{
+                    role: "user",
+                    content: `Generate code in ${Array.from(selectedLangs).join(', ')} for: ${promptInput.value}`
+                }];
+
+                const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer m5xmYwiAL5VQZcRDyBiyCrh7DQm2',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ messages })
+                });
+
+                const data = await response.json();
+                
+                // Parse the AI response and separate code for different languages
+                const codeBlocks = parseAIResponse(data.message);
+                generatedCode = codeBlocks;
+                
+                // Show output container and display first language
+                outputContainer.classList.remove('hidden');
+                updateOutputTabs();
+                if (Object.keys(codeBlocks).length > 0) {
+                    showLanguageCode(Object.keys(codeBlocks)[0]);
+                }
+
+            } catch (error) {
+                alert('Error generating code: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="bi bi-code-slash"></i> Generate Code';
+            }
+        });
+
+        function parseAIResponse(response) {
+            const codeBlocks = {};
+            const languages = Array.from(selectedLangs);
+            
+            // Simple parsing - this can be improved based on actual AI response format
+            languages.forEach(lang => {
+                const langRegex = new RegExp(`\`\`\`${lang}([\\s\\S]*?)\`\`\``, 'i');
+                const match = response.match(langRegex);
+                if (match) {
+                    codeBlocks[lang] = match[1].trim();
+                }
+            });
+            
+            return codeBlocks;
+        }
+
+        function updateOutputTabs() {
+            outputTabs.innerHTML = Object.keys(generatedCode).map(lang => 
+                `<button class="px-4 py-2 rounded-lg ${currentLanguage === lang ? 'bg-a6447f text-white' : 'bg-white text-a6447f'}" 
+                         onclick="showLanguageCode('${lang}')">${lang}</button>`
+            ).join('');
+        }
+
+        function showLanguageCode(lang) {
+            currentLanguage = lang;
+            codeOutput.textContent = generatedCode[lang];
+            updateOutputTabs();
+        }
+
+        copyBtn.addEventListener('click', () => {
+            if (currentLanguage && generatedCode[currentLanguage]) {
+                navigator.clipboard.writeText(generatedCode[currentLanguage]);
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy Code';
+                }, 2000);
+            }
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
